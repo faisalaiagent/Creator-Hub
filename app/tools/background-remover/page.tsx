@@ -40,6 +40,10 @@ const MAX_FILES = 5; // Free plan batch limit
 
 // ─── Metadata ─────────────────────────────────────────────────────────────────
 export default function BackgroundRemoverPage() {
+  const [dragActive, setDragActive] = useState(false);
+  const [files, setFiles] = useState<File[]>([]);
+  const [state, setState] = useState<ProcessingState>("idle");
+  const [processed, setProcessed] = useState<ProcessedImage[]>([]);
 // ─── Page Component ───────────────────────────────────────────────────────────
 export default function BackgroundRemoverPage() {
   const [dragActive, setDragActive] = useState(false);
