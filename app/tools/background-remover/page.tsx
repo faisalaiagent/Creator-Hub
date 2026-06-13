@@ -39,13 +39,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_FILES = 5; // Free plan batch limit
 
 // ─── Metadata ─────────────────────────────────────────────────────────────────
-// Note: export this from a separate metadata.ts if using Server Components
-export const metadata = {
-  title: "Background Remover — Creator Hub",
-  description:
-    "Remove image backgrounds instantly with AI. Free online background remover for creators. Download PNG with transparent background.",
-};
-
+export default function BackgroundRemoverPage() {
 // ─── Page Component ───────────────────────────────────────────────────────────
 export default function BackgroundRemoverPage() {
   const [dragActive, setDragActive] = useState(false);
