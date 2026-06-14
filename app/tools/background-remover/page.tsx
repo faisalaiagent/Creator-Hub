@@ -149,14 +149,30 @@ export default function BackgroundRemoverPage() {
 
   // ─── Download ────────────────────────────────────────────────────────────────
   const handleDownload = async (img: ProcessedImage) => {
-    const a = document.createElement("a");
-    a.href = img.resultUrl;
-    a.download = img.filename;
-    a.click();
+    try {
+      // Must fetch as blob first — browser blocks cross-origin downloads
+      // when using anchor.download directly on Cloudinary URLs
+      const response = await fetch(img.resultUrl);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = img.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      // Release memory
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    } catch {
+      // Fallback: open in new tab if blob fetch fails
+      window.open(img.resultUrl, "_blank");
+    }
   };
 
   const handleDownloadAll = () => {
-    processed.forEach((img) => handleDownload(img));
+    processed.forEach((img, idx) =>
+      setTimeout(() => handleDownload(img), idx * 500)
+    );
   };
 
   const handleReset = () => {

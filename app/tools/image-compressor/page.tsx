@@ -141,18 +141,32 @@ export default function ImageCompressorPage() {
     setGlobalState("done");
   };
 
-  const handleDownload = (item: FileItem) => {
+  const handleDownload = async (item: FileItem) => {
     if (!item.compressedUrl || !item.compressedFilename) return;
-    const a = document.createElement("a");
-    a.href = item.compressedUrl;
-    a.download = item.compressedFilename;
-    a.click();
+    try {
+      // Must fetch as blob first — browser blocks cross-origin downloads
+      // when using anchor.download directly on Cloudinary URLs
+      const response = await fetch(item.compressedUrl);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = item.compressedFilename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      // Release memory
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    } catch {
+      // Fallback: open in new tab if blob fetch fails
+      window.open(item.compressedUrl, "_blank");
+    }
   };
 
   const handleDownloadAll = () =>
     items
       .filter((i) => i.status === "done")
-      .forEach((i, idx) => setTimeout(() => handleDownload(i), idx * 250));
+      .forEach((i, idx) => setTimeout(() => handleDownload(i), idx * 500));
 
   const handleReset = () => {
     setItems([]);
