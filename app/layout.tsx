@@ -98,7 +98,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <span className="text-sm font-semibold text-stone-900">Creator Hub</span>
               </div>
               <p className="text-xs text-stone-400 leading-relaxed max-w-xs">
-                Free AI tools for content creators. No signup required. Built by TensorLab.
+                Free AI tools for content creators. No signup required. Built by Shah Faisal Tech.
               </p>
             </div>
 
@@ -141,7 +141,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
           <div className="border-t border-stone-100 py-4 text-center">
             <p className="text-[11px] text-stone-400">
-              © {new Date().getFullYear()} Creator Hub · TensorLab. All rights reserved.
+              © {new Date().getFullYear()} Creator Hub · Shah Faisal Tech. All rights reserved.
             </p>
           </div>
         </footer>

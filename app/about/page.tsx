@@ -3,7 +3,7 @@ import { Zap, Image as ImageIcon, MessageSquare, Hash, Type, Sparkles } from "lu
 
 export const metadata: Metadata = {
   title: "About | Creator Hub",
-  description: "Learn about Creator Hub — free AI-powered tools for content creators, built by TensorLab.",
+  description: "Learn about Creator Hub — free AI-powered tools for content creators, built by Shah Faisal Tech.",
   robots: { index: true, follow: true },
 };
 
@@ -56,7 +56,7 @@ export default function AboutPage() {
 
         <h2 className="text-lg font-semibold text-stone-900 mb-3">Who we are</h2>
         <p className="text-base text-stone-600 leading-relaxed mb-6">
-          Creator Hub is built and maintained by <strong>TensorLab</strong>, an independent
+          Creator Hub is built and maintained by <strong>Shah Faisal Tech</strong>, an independent
           software studio focused on practical AI tools for creators, marketers, and small
           businesses. We're a small team that ships fast and listens to feedback.
         </p>
