@@ -38,12 +38,6 @@ const ACCEPTED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_FILES = 5; // Free plan batch limit
 
-// ─── Metadata ─────────────────────────────────────────────────────────────────
-export default function BackgroundRemoverPage() {
-  const [dragActive, setDragActive] = useState(false);
-  const [files, setFiles] = useState<File[]>([]);
-  const [state, setState] = useState<ProcessingState>("idle");
-  const [processed, setProcessed] = useState<ProcessedImage[]>([]);
 // ─── Page Component ───────────────────────────────────────────────────────────
 export default function BackgroundRemoverPage() {
   const [dragActive, setDragActive] = useState(false);
