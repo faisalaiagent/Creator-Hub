@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Metadata } from "next";
-import { Mail, Send, CheckCircle2, MessageCircle } from "lucide-react";
+import { Mail, Send, CheckCircle2, MessageCircle, Loader2, AlertCircle } from "lucide-react";
 
 const FAQS = [
   {
@@ -24,101 +23,176 @@ const FAQS = [
 ];
 
 export default function ContactPage() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [name, setName]       = useState("");
+  const [email, setEmail]     = useState("");
   const [message, setMessage] = useState("");
-  const [sent, setSent] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent]       = useState(false);
+  const [error, setError]     = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // No backend wired up yet — opens the user's email client as a fallback.
-    const subject = encodeURIComponent(`Creator Hub contact — ${name || "Website visitor"}`);
-    const body = encodeURIComponent(`${message}\n\n— ${name} (${email})`);
-    window.location.href = `mailto:faisalagentai@gmail.com?subject=${subject}&body=${body}`;
-    setSent(true);
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, message }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error ?? "Something went wrong. Please try again.");
+        return;
+      }
+
+      setSent(true);
+    } catch {
+      setError("Network error. Please check your connection and try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-3xl mx-auto px-6 py-16">
+
+        {/* Header */}
         <div className="flex items-center gap-2 mb-4">
           <MessageCircle size={14} className="text-violet-500" />
-          <span className="text-xs font-medium text-violet-600 uppercase tracking-wider">Contact</span>
+          <span className="text-xs font-medium text-violet-600 uppercase tracking-wider">
+            Contact
+          </span>
         </div>
-
         <h1 className="text-3xl font-bold text-stone-900 mb-3">Get in touch</h1>
         <p className="text-base text-stone-600 leading-relaxed mb-10">
           Questions, feedback, bug reports, or tool requests — we'd love to hear from you.
+          We reply to every message within 24 hours.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Form */}
+
+          {/* ── Form ── */}
           <div>
             {sent ? (
+              /* Success state */
               <div className="flex items-start gap-3 p-5 rounded-2xl bg-emerald-50 border border-emerald-100">
                 <CheckCircle2 size={18} className="text-emerald-500 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium text-emerald-800">Opening your email client...</p>
-                  <p className="text-xs text-emerald-600 mt-1">
-                    If nothing happened, email us directly at{" "}
-                    <a href="mailto:faisalagentai@gmail.com" className="underline">faisalagentai@gmail.com</a>
+                  <p className="text-sm font-semibold text-emerald-800 mb-1">
+                    Message sent successfully!
                   </p>
+                  <p className="text-xs text-emerald-600 leading-relaxed">
+                    Thanks {name} — we've received your message and will reply to{" "}
+                    <strong>{email}</strong> within 24 hours.
+                  </p>
+                  <button
+                    onClick={() => { setSent(false); setName(""); setEmail(""); setMessage(""); }}
+                    className="mt-3 text-xs text-emerald-700 underline"
+                  >
+                    Send another message
+                  </button>
                 </div>
               </div>
             ) : (
+              /* Form */
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-medium text-stone-500 mb-1.5">Your name</label>
+                  <label className="block text-xs font-medium text-stone-500 mb-1.5">
+                    Your name <span className="text-red-400">*</span>
+                  </label>
                   <input
                     type="text"
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full text-sm border border-stone-200 rounded-xl px-3 py-2.5 outline-none focus:border-violet-300"
+                    disabled={loading}
+                    className="w-full text-sm border border-stone-200 rounded-xl px-3 py-2.5 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all disabled:opacity-50"
                     placeholder="Jane Creator"
                   />
                 </div>
+
                 <div>
-                  <label className="block text-xs font-medium text-stone-500 mb-1.5">Email</label>
+                  <label className="block text-xs font-medium text-stone-500 mb-1.5">
+                    Your email <span className="text-red-400">*</span>
+                  </label>
                   <input
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full text-sm border border-stone-200 rounded-xl px-3 py-2.5 outline-none focus:border-violet-300"
+                    disabled={loading}
+                    className="w-full text-sm border border-stone-200 rounded-xl px-3 py-2.5 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all disabled:opacity-50"
                     placeholder="jane@example.com"
                   />
                 </div>
+
                 <div>
-                  <label className="block text-xs font-medium text-stone-500 mb-1.5">Message</label>
+                  <label className="block text-xs font-medium text-stone-500 mb-1.5">
+                    Message <span className="text-red-400">*</span>
+                  </label>
                   <textarea
                     required
                     rows={5}
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
-                    className="w-full text-sm border border-stone-200 rounded-xl px-3 py-2.5 outline-none focus:border-violet-300 resize-none"
-                    placeholder="How can we help?"
+                    disabled={loading}
+                    className="w-full text-sm border border-stone-200 rounded-xl px-3 py-2.5 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all resize-none disabled:opacity-50"
+                    placeholder="How can we help? Describe your question, bug, or tool request..."
                   />
                 </div>
+
+                {/* Error */}
+                {error && (
+                  <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-red-50 border border-red-100">
+                    <AlertCircle size={14} className="text-red-500 flex-shrink-0" />
+                    <p className="text-xs text-red-600">{error}</p>
+                  </div>
+                )}
+
                 <button
                   type="submit"
-                  className="w-full flex items-center justify-center gap-2 bg-violet-600 text-white text-sm font-medium rounded-xl py-3 hover:bg-violet-700 transition-colors"
+                  disabled={loading}
+                  className="w-full flex items-center justify-center gap-2 bg-violet-600 text-white text-sm font-medium rounded-xl py-3 hover:bg-violet-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  <Send size={14} />
-                  Send message
+                  {loading ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Send size={14} />
+                      Send message
+                    </>
+                  )}
                 </button>
               </form>
             )}
 
-            <div className="mt-6 flex items-center gap-2 text-sm text-stone-500">
-              <Mail size={14} />
-              <a href="mailto:faisalagentai@gmail.com" className="underline">faisalagentai@gmail.com</a>
+            {/* Direct email */}
+            <div className="mt-5 flex items-center gap-2 text-sm text-stone-500">
+              <Mail size={14} className="text-stone-400" />
+              <span>Or email directly:</span>
+              <a
+                href="mailto:faisalagentai@gmail.com"
+                className="text-violet-600 hover:underline font-medium"
+              >
+                faisalagentai@gmail.com
+              </a>
             </div>
           </div>
 
-          {/* FAQ */}
+          {/* ── FAQ ── */}
           <div>
-            <h2 className="text-sm font-semibold text-stone-900 mb-4">Frequently asked questions</h2>
+            <h2 className="text-sm font-semibold text-stone-900 mb-4">
+              Frequently asked questions
+            </h2>
             <div className="space-y-3">
               {FAQS.map((faq) => (
                 <div key={faq.q} className="border border-stone-100 rounded-xl p-4">
