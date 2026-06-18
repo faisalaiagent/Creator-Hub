@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { uploadToCloudinary } from "@/lib/storage/cloudinary";
 import { checkRateLimit, getClientIp } from "@/lib/utils/rate-limit";
 
 export const runtime = "nodejs";
@@ -16,7 +15,7 @@ export async function POST(req: NextRequest) {
     const { allowed, remaining } = checkRateLimit(ip, "background-remover", DAILY_LIMIT);
     if (!allowed) {
       return NextResponse.json(
-        { error: `Daily limit reached (${DAILY_LIMIT}/day). Try again tomorrow or upgrade to Pro.` },
+        { error: `Daily limit reached (${DAILY_LIMIT}/day). Try again tomorrow.` },
         { status: 429 }
       );
     }
@@ -34,6 +33,7 @@ export async function POST(req: NextRequest) {
 
     const buffer = Buffer.from(await file.arrayBuffer());
 
+    // Call remove.bg
     const removeBgForm = new FormData();
     removeBgForm.append("image_file", new Blob([buffer], { type: file.type }), file.name);
     removeBgForm.append("size", "auto");
@@ -54,20 +54,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Background removal failed. Please try another image." }, { status: 502 });
     }
 
+    // Get the transparent PNG buffer from remove.bg
     const resultBuffer = Buffer.from(await removeBgRes.arrayBuffer());
-    const cloudinaryResult = await uploadToCloudinary(resultBuffer, {
-      folder: "creator-hub/bg-removed",
-      format: "png",
-      resource_type: "image",
-      public_id: `${Date.now()}_${file.name.replace(/\.[^.]+$/, "")}`,
-    });
+
+    // Return as base64 data URL — this skips Cloudinary entirely.
+    // Cloudinary was converting the transparent PNG and filling
+    // transparent areas with black. Base64 preserves transparency 100%.
+    const base64 = resultBuffer.toString("base64");
+    const dataUrl = `data:image/png;base64,${base64}`;
 
     return NextResponse.json({
       success: true,
-      resultUrl: cloudinaryResult.secure_url,
+      resultUrl: dataUrl,
       resultSize: resultBuffer.length,
-      width: cloudinaryResult.width,
-      height: cloudinaryResult.height,
       remaining,
     });
   } catch (err: unknown) {
