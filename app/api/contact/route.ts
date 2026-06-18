@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
+// Replace this with your actual Formspree endpoint
+// Get it free at formspree.io → New Form → copy the endpoint URL
+const FORMSPREE_ENDPOINT = process.env.FORMSPREE_ENDPOINT ?? "https://formspree.io/f/YOUR_FORM_ID";
+
 export async function POST(req: NextRequest) {
   try {
     let body: { name?: string; email?: string; message?: string };
@@ -19,53 +23,53 @@ export async function POST(req: NextRequest) {
     if (!email.includes("@")) return NextResponse.json({ error: "Valid email is required." }, { status: 400 });
     if (message.length < 5)   return NextResponse.json({ error: "Message is too short."    }, { status: 400 });
 
-    const key = process.env.WEB3FORMS_ACCESS_KEY;
-    if (!key) {
-      console.error("[contact] WEB3FORMS_ACCESS_KEY is not set");
-      return NextResponse.json({ error: "Email service not configured." }, { status: 503 });
-    }
+    console.log("[contact] Submitting to Formspree...");
 
-    const payload = {
-      access_key: key,
-      subject:    "[Creator Hub] New message from " + name,
-      from_name:  name,
-      reply_to:   email,
-      message:    "Name: " + name + "\nEmail: " + email + "\n\nMessage:\n" + message,
-      botcheck:   "",
-    };
-
-    console.log("[contact] Submitting to Web3Forms...");
-
-    const res  = await fetch("https://api.web3forms.com/submit", {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify(payload),
+    const res = await fetch(FORMSPREE_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      },
+      body: JSON.stringify({
+        name,
+        email,
+        message,
+        _replyto: email,
+        _subject: "[Creator Hub] New message from " + name,
+      }),
     });
 
     const text = await res.text();
-    console.log("[contact] Web3Forms raw response:", text);
+    console.log("[contact] Formspree status:", res.status, "response:", text.substring(0, 200));
 
-    let data: { success?: boolean; message?: string };
+    let data: { ok?: boolean; error?: string } = {};
     try {
       data = JSON.parse(text);
     } catch {
-      console.error("[contact] Web3Forms non-JSON response:", text);
-      return NextResponse.json({ error: "Email service returned unexpected response." }, { status: 502 });
-    }
-
-    if (!res.ok || !data.success) {
-      console.error("[contact] Web3Forms error:", data);
+      console.error("[contact] Formspree non-JSON response:", text.substring(0, 300));
       return NextResponse.json(
-        { error: "Delivery failed: " + (data.message ?? "unknown error") },
+        { error: "Email service error. Please email faisalagentai@gmail.com directly." },
         { status: 502 }
       );
     }
 
-    console.log("[contact] Email sent successfully");
+    if (!res.ok) {
+      console.error("[contact] Formspree error:", data);
+      return NextResponse.json(
+        { error: "Delivery failed: " + (data.error ?? "unknown error") },
+        { status: 502 }
+      );
+    }
+
+    console.log("[contact] Email sent successfully via Formspree");
     return NextResponse.json({ success: true });
 
   } catch (err) {
     console.error("[contact] Unhandled error:", String(err));
-    return NextResponse.json({ error: "Server error. Please email faisalagentai@gmail.com" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Server error. Please email faisalagentai@gmail.com" },
+      { status: 500 }
+    );
   }
 }
