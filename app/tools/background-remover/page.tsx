@@ -454,20 +454,30 @@ export default function BackgroundRemoverPage() {
                     onMouseUp={handleSliderMouseUp}
                     onMouseLeave={handleSliderMouseUp}
                   >
-                    {/* Result layer (bottom) */}
-                    <div
-                      className="absolute inset-0"
-                      style={{
-                        background:
-                          bgColor === "transparent"
-                            ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Crect width='10' height='10' fill='%23e5e5e5'/%3E%3Crect x='10' y='10' width='10' height='10' fill='%23e5e5e5'/%3E%3Crect x='10' width='10' height='10' fill='%23f5f5f5'/%3E%3Crect y='10' width='10' height='10' fill='%23f5f5f5'/%3E%3C/svg%3E")`
-                            : bgColor,
-                      }}
-                    >
+                    {/* Result layer (bottom) — two separate layers:
+                        1. Color/pattern background behind the PNG
+                        2. PNG image on top with mix-blend-mode normal
+                        This ensures transparent PNG pixels show the
+                        chosen background color correctly */}
+                    <div className="absolute inset-0">
+                      {/* Layer 1: background color or checkerboard */}
+                      <div
+                        className="absolute inset-0"
+                        style={{
+                          background:
+                            bgColor === "transparent"
+                              ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Crect width='10' height='10' fill='%23e5e5e5'/%3E%3Crect x='10' y='10' width='10' height='10' fill='%23e5e5e5'/%3E%3Crect x='10' width='10' height='10' fill='%23f5f5f5'/%3E%3Crect y='10' width='10' height='10' fill='%23f5f5f5'/%3E%3C/svg%3E")`
+                              : bgColor,
+                          backgroundSize:
+                            bgColor === "transparent" ? "20px 20px" : "auto",
+                        }}
+                      />
+                      {/* Layer 2: PNG image — transparent areas reveal Layer 1 */}
                       <img
                         src={activeImage.resultUrl}
                         alt="Background removed"
-                        className="w-full h-full object-contain"
+                        className="absolute inset-0 w-full h-full object-contain"
+                        style={{ background: "transparent" }}
                       />
                     </div>
 
