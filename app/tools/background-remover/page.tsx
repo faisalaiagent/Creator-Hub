@@ -52,6 +52,15 @@ export default function BackgroundRemoverPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sliderRef = useRef<HTMLDivElement>(null);
 
+  const BG_OPTIONS = [
+    { label: "Transparent", value: "transparent", preview: "checkerboard" },
+    { label: "White", value: "#ffffff", preview: "#ffffff" },
+    { label: "Black", value: "#000000", preview: "#000000" },
+    { label: "Cream", value: "#FFF8F0", preview: "#FFF8F0" },
+    { label: "Sky", value: "#E0F2FE", preview: "#E0F2FE" },
+    { label: "Lavender", value: "#EDE9FE", preview: "#EDE9FE" },
+  ];
+
   // ─── Drag & Drop ────────────────────────────────────────────────────────────
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -175,6 +184,73 @@ export default function BackgroundRemoverPage() {
     );
   };
 
+  // ── Download with baked-in background color ────────────────────────────────
+  // Renders the transparent PNG onto a canvas filled with the chosen color,
+  // then exports that flattened result as a new PNG. This is separate from
+  // handleDownload (which always exports the raw transparent PNG).
+  const [flattening, setFlattening] = useState(false);
+
+  const handleDownloadWithBackground = async (img: ProcessedImage, color: string) => {
+    if (color === "transparent") {
+      // No color selected — just download the transparent version
+      handleDownload(img);
+      return;
+    }
+
+    setFlattening(true);
+    try {
+      // Load the transparent PNG into an Image element
+      const imageEl = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const el = new window.Image();
+        el.crossOrigin = "anonymous";
+        el.onload = () => resolve(el);
+        el.onerror = reject;
+        el.src = img.resultUrl;
+      });
+
+      // Create a canvas matching the image's natural dimensions
+      const canvas = document.createElement("canvas");
+      canvas.width = imageEl.naturalWidth;
+      canvas.height = imageEl.naturalHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Canvas context unavailable");
+
+      // 1. Fill the entire canvas with the chosen background color
+      ctx.fillStyle = color;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // 2. Draw the transparent-background PNG on top —
+      //    transparent pixels reveal the fill color beneath
+      ctx.drawImage(imageEl, 0, 0, canvas.width, canvas.height);
+
+      // 3. Export the flattened canvas as a PNG blob
+      const flattenedBlob: Blob = await new Promise((resolve, reject) => {
+        canvas.toBlob(
+          (b) => (b ? resolve(b) : reject(new Error("Failed to create blob"))),
+          "image/png"
+        );
+      });
+
+      // 4. Trigger download of the flattened PNG
+      const blobUrl = URL.createObjectURL(flattenedBlob);
+      const a = document.createElement("a");
+      const colorLabel =
+        BG_OPTIONS.find((o) => o.value === color)?.label.toLowerCase() ?? "color";
+      a.href = blobUrl;
+      a.download = img.filename.replace(/\.png$/i, `_${colorLabel}_bg.png`);
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    } catch (err) {
+      console.error("[flatten download]", err);
+      setError("Couldn't apply background color. Downloading transparent PNG instead.");
+      handleDownload(img);
+    } finally {
+      setFlattening(false);
+    }
+  };
+
   const handleReset = () => {
     setFiles([]);
     setProcessed([]);
@@ -187,15 +263,6 @@ export default function BackgroundRemoverPage() {
     b > 1024 * 1024
       ? `${(b / 1024 / 1024).toFixed(1)} MB`
       : `${Math.round(b / 1024)} KB`;
-
-  const BG_OPTIONS = [
-    { label: "Transparent", value: "transparent", preview: "checkerboard" },
-    { label: "White", value: "#ffffff", preview: "#ffffff" },
-    { label: "Black", value: "#000000", preview: "#000000" },
-    { label: "Cream", value: "#FFF8F0", preview: "#FFF8F0" },
-    { label: "Sky", value: "#E0F2FE", preview: "#E0F2FE" },
-    { label: "Lavender", value: "#EDE9FE", preview: "#EDE9FE" },
-  ];
 
   return (
     <div className="min-h-screen bg-[#FAFAF9]">
@@ -632,6 +699,34 @@ export default function BackgroundRemoverPage() {
                     </button>
                   ))}
                 </div>
+
+                {/* Download with the currently selected background color baked in.
+                    Hidden when "Transparent" is selected since that's identical
+                    to the regular "Download PNG" button above. */}
+                {bgColor !== "transparent" && activeImage && (
+                  <button
+                    onClick={() => handleDownloadWithBackground(activeImage, bgColor)}
+                    disabled={flattening}
+                    className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                    style={{
+                      background: "#7C3AED",
+                      color: "white",
+                    }}
+                  >
+                    {flattening ? (
+                      <>
+                        <Loader2 size={13} className="animate-spin" />
+                        Applying background...
+                      </>
+                    ) : (
+                      <>
+                        <Download size={13} />
+                        Download with{" "}
+                        {BG_OPTIONS.find((o) => o.value === bgColor)?.label} background
+                      </>
+                    )}
+                  </button>
+                )}
               </motion.div>
             )}
 
